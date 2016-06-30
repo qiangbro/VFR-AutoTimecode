@@ -1,0 +1,2 @@
+# VFR-AutoTimecode
+用于在写avisynth脚本拼接帧率不同的影视片段制作VFR视频时，通过调用一套简易的函数来收集timecode信息，以实现自动生成v1格式的timecode文件，告别人工去编写timecode文件。
