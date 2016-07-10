@@ -15,37 +15,108 @@
 
 
 
-
-
 #
-#   VFR-AutoTimecode 1.3
-#
-#   用于在写avisynth脚本拼接帧率不同的影视片段制作VFR视频时，
-#   通过调用一套简易的函数来收集timecode信息，以实现自动
-#   生成v1格式的timecode文件，告别人工去编写timecode文件。
+#   VFR-AutoTimecode 1.4
 #
 #
-#   Author : Mikey
+#   小伙伴们在用avisynth脚本拼接帧率不同的影视片段制作VFR视频时，
+#   需要用一个timecode文件实现动态帧率封装。
+#   人工编写timecode文件，会比较繁琐、又容易出错。
+#   本脚本提供一套简易的函数来实现程序自动收集影片信息编写timecode文件。
+#
+#
+#   作者 : Mikey
 #   E-mail : qiangbro@qq.com
-#
 #   所在团队 : 有村花纯字幕组
+#   项目网址 : https://github.com/qiangbro/VFR-AutoTimecode
+#
 #
 #   感谢您的使用与测试。如果遇到bug，欢迎反馈。
-#   如果您要复制、发布和修改本程序代码，请遵守 WTFPL 2.0，希望本程序对您有帮助。
+#   如果您要复制、发布和修改本程序代码，请遵守 WTFPL 2.0。
 #   再次感谢，祝您生活愉快！
 #
 #
 #       Mikey
-#       2016.6
+#       2016.7
 #
 
+
+
+# --- 接口说明 ---
+#
+#   本脚本提供3个函数：
+#
+#       tcInit(clip src, float "default_fps", bool "auto_assume_fps")
+#           用于收集片源的基本信息，初始化timecode信息。
+#           调用时机：
+#               在加载完片源后，调用一次本函数。
+#           参数：
+#               src 片源影片
+#               default_fps 指定timecode的默认帧率。默认取片源影片的帧率
+#               auto_assume_fps 是否在调用了tcAppend方法后自动对影片做AssumeFPS(fps=default_fps)。默认true
+#           返回值：
+#               原影片src
+#
+#       tcAppend(clip c)
+#           用于收集各个片段的帧数和帧率信息。
+#           调用时机：
+#               对每一个片段调用一次本函数，请按顺序调用。
+#           参数：
+#               c 组成成品的、帧率可能不同的片段影片片段
+#           返回值：
+#               如果auto_assume_fps为true，则返回做了AssumeFPS之后的影片c，否则返回原影片c
+#
+#       tcWrite(clip spliced, string "filename")
+#           用于最后将timecode数据写到该avs文件的同目录中的timecode文件。
+#           调用时机：
+#               在将所有分段全都调用了tcAppend且合并到主影片之后，对合并好的主影片调用一次本函数。
+#           参数：
+#               spliced 已拼接好的成品影片
+#               filename 指定输出timecode文件的文件名。默认：原avs文件名 + -auto-timecode_v1.txt
+#           返回值：
+#               原影片spliced
+#
+#
+#   如果你能正确调用以上三个函数，那么当脚本被执行的时候（例如用播放器预览该avs文件），就可以得到自动生成的timecode文件。
+#
+
+# --- CODE SAMPLES ---
+#
+#   [Kimamani Arinomamani - vfr-test.avs]
+#
+#       LoadPlugin("E:\program_media\DG2044\dgindexnv\DGDecodeNV.dll")
+#       LoadCPlugin("E:\program_media\avisynth-plugin\yadif17\yadif.dll")
+#       Import("E:\program_media\[A.K.] Mikey's Fansub Utilities Pack\avisynth_plugin\VFR-AutoTimecode-1.4.avsi")
+#
+#       v = DGSource("H:\fansub-work\[任务\[存档\2013.11.20 Kimamani Arinomamani\src\Kimamani Arinomamani.dgi")
+#       a = WavSource("H:\fansub-work\[任务\[存档\2013.11.20 Kimamani Arinomamani\src\Kimamani_Arinomamani--track02.wav").DelayAudio(0.000)
+#       AudioDub(v, a)
+#
+#       tcInit()
+#
+#       Trim(7451,7666).Yadif(mode=3).tcAppend() + Trim(727,1536).tcAppend()
+#
+#       tcWrite()
+#
+
+
+# --- REQUIREMENTS ---
+#
+#   Avisynth 2.6 or Avisynth+
+#
 
 
 # --- VERSION HISTORY ---
 #
+#   2016.7.8
+#   1.4 by Mikey
+#       tcInit增加auto_assume_fps参数
+#       函数改名，将添加分段的函数改为tcAppend
+#
+#
 #   2016.6.27
 #   1.3 by Mikey
-#       函数改名，统一改为驼峰命名方式：tcInit，tcAdd，tcWrite
+#       函数改名，统一改为驼峰命名方式：tcInit，tcAppend，tcWrite
 #       生成的文件名后缀改为-auto-timecode_v1.txt
 #
 #
@@ -80,21 +151,15 @@
 #   2016.6.24
 #   1.1 by Mikey
 #       增加分段帧数之和的统计：tc_frame_counter
-#       增加错误提示：调用tcAdd、tcWrite之前必须先调用tcInit。
+#       增加错误提示：调用tcAppend、tcWrite之前必须先调用tcInit。
 #       增加错误提示：调用tcWrite时，必须保证影片的总帧数与各个分段的帧数之和一致。
 #
 #
 #   2016.6.23
 #   1.0 by Mikey
-#       tcInit、tcAdd、tcWrite基本功能实现。
+#       tcInit、tcAppend、tcWrite基本功能实现。
 #       编写文案。
 #
-
-
-
-# --- REQUIREMENTS ---
-#
-#   Avisynth 2.6 or Avisynth+
 
 
 
@@ -229,72 +294,43 @@
 #           The FPS is a floating point number with the dot '.' as the decimal point.
 #           The ranges can contain gaps for which the default FPS is used.
 #
-#       根据以上的说明，我来介绍一下timecode文件中的数据是如何得来的：
+#       我来介绍一下本例中timecode文件中的数据是如何得来的：
 #
 #           已知片源的帧率=30000/1001=29.970030，将它作为默认帧率
 #           所以有了：Assume 29.970030
 #
-#           首个片段：Trim(7451,7666)，共216帧，用Yadif(mode=3)反交错，得到双倍帧，即432帧，
+#           然后逐段计算推导。
+#
+#           首段：Trim(7451,7666)，共216帧，用Yadif(mode=3)反交错，得到双倍帧，即432帧，
 #           得出成品的编号是0~431的帧的帧率是2*30000/1001=59.940060
 #           所以有了：0,431,59.940060
 #
-#           第二个片段：Trim(727,1536)，共810帧，不进行反交错，成品依然是810帧，
+#           第二段：Trim(727,1536)，共810帧，不进行反交错，成品依然是810帧，
 #           得出成品的编号是432~1241的帧的帧率是30000/1001=29.970030
 #           所以有了：432,1241,29.970030
 #
 #
 #   7. 封装，得到VFR成品。
+#       本例演示mkv的VFR封装。
 #       ① 用mkvtoolnixGUI载入视频轨，单击导入的视频轨，为它导入timecode文件。
-#       ② 正常导入音频轨，完善其他的封装参数，例如标题之类。
-#       ③ 合成mkv文件，最后得到成品VFR视频。
-#       另外，mp4格式的VFR封装各位可以自行研究
+#       ② 正常导入音频轨
+#       ③ 完善其他的封装参数。
+#       ④ 合成mkv文件，最后得到成品VFR视频。
+#
 
 
 
-# --- 关于人工编写timecode文件的讨论 ---
+# --- 避免人工编写timecode文件 ---
 #
 #   在上面的步骤6，如果你自己人工编写timecode文件，可以体会到：
 #       ① 需要人为去做琐碎的推导计算工作，工作效率低，而工作量多的话容易出错。
 #       ② 如果发现某一步推导的数据出了错，后面的数据都要做修正（这可麻烦了，可能又会产生新的错）。
 #       ③ 对于5烂2的反交错，原帧数乘以0.8得到反交错的帧数，可能会产生小数，我尚不明确所用的反交错滤镜会如何进行取舍。
 #
-#   综上几点我认为，生产环境中，压制人员人工去编写timecode文件的做法并不太实际可行。
-#
-
-
-
-# --- VFR-AutoTimecode 操作说明 ---
-#
-#   (做了那么多的铺垫，现在开始正题)
-#
-#   VFR-AutoTimecode 是一个使用avisynth语法编写的脚本，
-#   它用于在写avisynth脚本来拼接帧率不同的影视片段制作VFR视频时，
-#   通过调用一套简易的函数来收集timecode信息，以实现由程序编写timecode文件，
-#   从而避免人工编写timecode文件。
+#   综上几点我认为，生产环境中，压制人员人工去编写timecode文件的做法并不太实际可行。于是，本脚本产生。
 #
 #
-#   本脚本提供了3个重要的函数：
-#
-#       tcInit(clip src, float "default_fps")
-#           用于收集片源的基本信息，初始化timecode信息。
-#           该函数返回原影片
-#           调用时机：在加载完片源后，调用一次本函数。
-#
-#       tcAdd(clip c)
-#           用于收集各个片段的帧数和帧率信息。
-#           该函数返回做了AssumeFPS之后的影片，以此设定统一的帧率。
-#           调用时机：对每一个组成成品的、帧率可能不同的片段调用一次本函数。
-#
-#       tcWrite(clip c, string "filename")
-#           用于将timecode数据一次性输出到timecode文件。
-#           该函数返回原影片
-#           调用时机：在将所有分段全都调用了tcAdd且合并到主影片之后，对合并好的主影片调用一次本函数。
-#
-#   本程序的工作原理是，使用全局变量来记录timecode信息，最终使用WriteFileStart来输出timecode文件。
-#
-#
-#   通过在avisynth脚本中调用以上三个函数，就可以在脚本运行的同时，自动生成timecode文件。
-#   下面，介绍如何将VFR-AutoTimecode应用到之前介绍的制作VFR视频的工作步骤中：
+#   下面，介绍如何将本脚本应用到之前介绍的制作VFR视频的工作步骤中：
 #
 #   在步骤1:
 #       在avs文件中加载各种插件时，将VFR-AutoTimecode-1.3.avsi引入。
@@ -316,12 +352,12 @@
 #       无变化。
 #
 #   在步骤4:
-#       在为每个Trim区间应用了反交错之后，需要调用tcAdd()，以此来收集该片段的帧数量和帧率信息。
-#       调用完了tcAdd函数以后，可以将原来的AssumeFPS语句统一全都去掉，因为tcAdd会捎带着做AssumeFPS。
+#       在为每个Trim区间应用了反交错之后，需要调用tcAppend()，以此来收集该片段的帧数量和帧率信息。
+#       调用完了tcAppend函数以后，可以将原来的AssumeFPS语句统一全都去掉，因为tcAppend会捎带着做AssumeFPS。
 #       当所有的Trim区间处理完善后，另起一行，对合并好的影片调用一次tcWrite()，以此将收集到的timecode信息一次性输出到timecode文件。
 #
 #       示例：[Kimamani Arinomamani - vfr-test.avs]
-#           Trim(7451,7666).Yadif(mode=3).tcAdd() + Trim(727,1536).tcAdd()
+#           Trim(7451,7666).Yadif(mode=3).tcAppend() + Trim(727,1536).tcAppend()
 #           tcWrite()
 #
 #   在步骤5:
@@ -342,59 +378,40 @@
 #
 #   在步骤7:
 #       无变化。
-
-
-
-# --- CODE SAMPLES ---
 #
-#   完整AVS文件示例: [Kimamani Arinomamani - vfr-test.avs]
-#
-#       LoadPlugin("E:\program_media\DG2044\dgindexnv\DGDecodeNV.dll")
-#       LoadCPlugin("E:\program_media\avisynth-plugin\yadif17\yadif.dll")
-#       Import("E:\program_media\[A.K.] Mikey's Fansub Utilities Pack\avisynth_plugin\VFR-AutoTimecode-1.3.avsi")
-#
-#       v = DGSource("H:\fansub-work\[任务\[存档\2013.11.20 Kimamani Arinomamani\src\Kimamani Arinomamani.dgi")
-#       a = WavSource("H:\fansub-work\[任务\[存档\2013.11.20 Kimamani Arinomamani\src\Kimamani_Arinomamani--track02.wav").DelayAudio(0.000)
-#       AudioDub(v, a)
-#
-#       tcInit()
-#
-#       Trim(7451,7666).Yadif(mode=3).tcAdd() + Trim(727,1536).tcAdd()
-#
-#       tcWrite()
-#
-
 
 
 
 
 global tc_is_inited = false
-global tc_offset = -1
-global tc_default_fps = 0
-global tc_frame_counter = 0
-global tc_appender = "#not yet ready..."
+#~ global tc_offset = -1
+#~ global tc_default_fps = 0
+#~ global tc_frame_counter = 0
+#~ global tc_appender = "#not yet ready..."
+#~ global tc_auto_assume_fps = true
 
 global tc_ENTER = """
 """
 
-global tc_MSG_CALL_INIT_BEFORE_ADD = "在调用tcAdd()之前，请先调用tcInit()"
+global tc_MSG_CALL_INIT_BEFORE_APPEND = "在调用tcAppend()之前，请先调用tcInit()"
 global tc_MSG_CALL_INIT_BEFORE_WRITE = "在调用tcWrite()之前，请先调用tcInit()"
-global tc_MSG_FRAME_COUNT_NOT_CONSISTENT = "分段帧数之和与影片总帧数不一致。请确保组成影片的每个分段都调用了一次tcAdd()"
+global tc_MSG_FRAME_COUNT_NOT_CONSISTENT = "分段帧数之和与影片总帧数不一致。请检查确保组成影片的每个分段都调用了一次tcAppend()"
 
 
 function tc_get_float_fps(val fps) {
     return Colorbars(512,384).AssumeFPS(fps).FrameRate()
 }
 
-function tcInit(clip src, val "default_fps") {
+function tcInit(clip src, val "default_fps", bool "auto_assume_fps") {
 
     global tc_is_inited = true
     global tc_offset = -1
     global tc_default_fps = Default(default_fps, src.FrameRate())
     global tc_frame_counter = 0
+    global tc_auto_assume_fps = Default(auto_assume_fps, true)
 
     format_line = "# timecode format v1"
-    notice_line = "# generated by Mikey's Fansub Utilities Pack - VFR-AutoTimecode 1.3"
+    notice_line = "# generated by Mikey's Fansub Utilities Pack - VFR-AutoTimecode 1.4 at " + Time("%Y-%m-%d %H:%M:%S")
     assume_line = "Assume " + string(tc_get_float_fps(tc_default_fps), "%f")
 
     global tc_appender = format_line + tc_ENTER + notice_line + tc_ENTER + assume_line
@@ -402,9 +419,9 @@ function tcInit(clip src, val "default_fps") {
     return src
 }
 
-function tcAdd(clip c) {
+function tcAppend(clip c) {
 
-    Assert(tc_is_inited, tc_MSG_CALL_INIT_BEFORE_ADD)
+    Assert(tc_is_inited, tc_MSG_CALL_INIT_BEFORE_APPEND)
 
     start = tc_offset + 1
     end = tc_offset + c.FrameCount()
@@ -416,17 +433,18 @@ function tcAdd(clip c) {
 
     global tc_appender = tc_appender + tc_ENTER + line
 
-    return c.AssumeFPS(tc_default_fps, sync_audio=false)
+    
+    return tc_auto_assume_fps ? c.AssumeFPS(tc_default_fps, sync_audio=false) : c
 }
 
 
-function tcWrite(clip c, string "filename") {
+function tcWrite(clip spliced, string "filename") {
 
     Assert(tc_is_inited, tc_MSG_CALL_INIT_BEFORE_WRITE)
-    Assert(tc_frame_counter == c.FrameCount(), tc_MSG_FRAME_COUNT_NOT_CONSISTENT)
+    Assert(tc_frame_counter == spliced.FrameCount(), tc_MSG_FRAME_COUNT_NOT_CONSISTENT)
     
     filename = Default(filename, ScriptName() + "-auto-timecode_v1.txt")
-    WriteFileStart(c, filename, "tc_appender", append=false)
+    WriteFileStart(spliced, filename, "tc_appender", append=false)
 
-    return c
+    return spliced
 }
