@@ -17,7 +17,7 @@ LoadCPlugin("E:\program_media\avisynth-plugin\yadif17\yadif.dll")
 #~ Import("E:\program_media\[A.K.] Mikey's Fansub Utilities Pack\avisynth_plugin\DelogoFunction\delogo.avsi")
 #~ LoadPlugin("E:\program_media\avisynth-plugin\VSFilter-2.41.322_x86.dll")
 #~ Import("E:\program_media\[A.K.] Mikey's Fansub Utilities Pack\avisynth_plugin\SSOverlay-1.1.3.avsi")
-Import("E:\program_media\[A.K.] Mikey's Fansub Utilities Pack\avisynth_plugin\MtModes.avsi")
+Import("E:\program_media\Mikey's Fansub Utilities\avisynth_plugin\MtModes.avsi")
 
 global MeGUI_darx = 16 global MeGUI_dary = 9
 
@@ -38,7 +38,7 @@ tcWrite()
 
 
 #~ LanczosResize(960, 540)
-#~ Spline36Resize(1280, 720)
+Spline36Resize(1280, 720)
 #~ Spline36Resize(1440, 810)
 #~ BlackmanResize(1920, 1080)
 

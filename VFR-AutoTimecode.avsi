@@ -16,73 +16,20 @@
 
 
 #
-#   VFR-AutoTimecode 1.4
+#   VFR-AutoTimecode 1.4.1
 #
 #
-#   小伙伴们在用avisynth脚本拼接帧率不同的影视片段制作VFR视频时，
-#   需要用一个timecode文件实现动态帧率封装。
-#   人工编写timecode文件，会比较繁琐、又容易出错。
-#   本脚本提供一套简易的函数来实现程序自动收集影片信息编写timecode文件。
-#
+#   在用avisynth脚本拼接帧率不同的影视片段制作VFR视频时，
+#   通过一套简易的函数来实现程序自动编写timecode文件。
 #
 #   作者 : Mikey
 #   E-mail : qiangbro@qq.com
 #   所在团队 : 有村花纯字幕组
 #   项目网址 : https://github.com/qiangbro/VFR-AutoTimecode
 #
-#
-#   感谢您的使用与测试。如果遇到bug，欢迎反馈。
-#   如果您要复制、发布和修改本程序代码，请遵守 WTFPL 2.0。
-#   再次感谢，祝您生活愉快！
-#
-#
-#       Mikey
-#       2016.7
-#
 
-
-
-# --- 接口说明 ---
-#
-#   本脚本提供3个函数：
-#
-#       tcInit(clip src, float "default_fps", bool "auto_assume_fps")
-#           用于收集片源的基本信息，初始化timecode信息。
-#           调用时机：
-#               在加载完片源后，调用一次本函数。
-#           参数：
-#               src 片源影片
-#               default_fps 指定timecode的默认帧率。默认取片源影片的帧率
-#               auto_assume_fps 是否在调用了tcAppend方法后自动对影片做AssumeFPS(fps=default_fps)。默认true
-#           返回值：
-#               原影片src
-#
-#       tcAppend(clip c)
-#           用于收集各个片段的帧数和帧率信息。
-#           调用时机：
-#               对每一个片段调用一次本函数，请按顺序调用。
-#           参数：
-#               c 组成成品的、帧率可能不同的片段影片片段
-#           返回值：
-#               如果auto_assume_fps为true，则返回做了AssumeFPS之后的影片c，否则返回原影片c
-#
-#       tcWrite(clip spliced, string "filename")
-#           用于最后将timecode数据写到该avs文件的同目录中的timecode文件。
-#           调用时机：
-#               在将所有分段全都调用了tcAppend且合并到主影片之后，对合并好的主影片调用一次本函数。
-#           参数：
-#               spliced 已拼接好的成品影片
-#               filename 指定输出timecode文件的文件名。默认：原avs文件名 + -auto-timecode_v1.txt
-#           返回值：
-#               原影片spliced
-#
-#
-#   如果你能正确调用以上三个函数，那么当脚本被执行的时候（例如用播放器预览该avs文件），就可以得到自动生成的timecode文件。
-#
 
 # --- CODE SAMPLES ---
-#
-#   [Kimamani Arinomamani - vfr-test.avs]
 #
 #       LoadPlugin("E:\program_media\DG2044\dgindexnv\DGDecodeNV.dll")
 #       LoadCPlugin("E:\program_media\avisynth-plugin\yadif17\yadif.dll")
@@ -100,65 +47,66 @@
 #
 
 
+# --- 接口说明 ---
+#
+#   本脚本提供3个函数：
+#
+#       tcInit(clip src, float "default_fps", bool "auto_assume_fps")
+#           收集片源的基本信息，初始化timecode信息。
+#           调用时机：
+#               在加载完片源后，调用一次本函数。
+#           参数：
+#               src 片源影片
+#               default_fps 指定timecode的默认帧率。默认取片源影片的帧率
+#                           支持AssumeFPS预设的字符串形式的fps，即：
+#
+#                           preset              numerator denominator approximate FPS
+#                           "ntsc_film"         24000       1001    23.976
+#                           "ntsc_video"        30000       1001    29.970
+#                           "ntsc_double"       60000       1001    59.940
+#                           "ntsc_quad"         120000      1001    119.880
+#                           "ntsc_round_film"   2997        125     23.976
+#                           "ntsc_round_video"  2997        100     29.97
+#                           "ntsc_round_double" 2997        50      59.94
+#                           "ntsc_round_quad"   2997        25      119.88
+#                           "film"              24          1       24.0
+#                           "pal_film"          25          1       25.0
+#                           "pal_video"         25          1       25.0
+#                           "pal_double"        50          1       50.0
+#                           "pal_quad"          100         1       100.0
+#
+#               auto_assume_fps 是否在调用了tcAppend方法后自动对影片做AssumeFPS(fps=default_fps)。默认true
+#
+#           返回值：
+#               原影片src
+#
+#       tcAppend(clip c)
+#           收集各个片段的帧数和帧率信息。
+#           调用时机：
+#               对每一个片段调用一次本函数，请按顺序调用。
+#           参数：
+#               c 组成成品的、帧率可能不同的片段影片片段
+#           返回值：
+#               如果auto_assume_fps为true，则返回做了AssumeFPS之后的影片c，否则返回原影片c
+#
+#       tcWrite(clip spliced, string "filename")
+#           将已收集的timecode写到文件。默认写到该avs脚本的同一目录中。
+#           调用时机：
+#               在将所有分段全都调用了tcAppend且合并到主影片之后，对合并好的主影片调用一次本函数。
+#           参数：
+#               spliced 已拼接好的成品影片
+#               filename 指定输出timecode文件的文件名。默认：原avs文件名 + -auto-timecode_v1.txt
+#           返回值：
+#               原影片spliced
+#
+#
+#   正确调用以上三个函数，就可以在脚本被执行的时候（例如用播放器预览时）自动生成timecode文件。
+#
+
+
 # --- REQUIREMENTS ---
 #
-#   Avisynth 2.6 or Avisynth+
-#
-
-
-# --- VERSION HISTORY ---
-#
-#   2016.7.8
-#   1.4 by Mikey
-#       tcInit增加auto_assume_fps参数
-#       函数改名，将添加分段的函数改为tcAppend
-#
-#
-#   2016.6.27
-#   1.3 by Mikey
-#       函数改名，统一改为驼峰命名方式：tcInit，tcAppend，tcWrite
-#       生成的文件名后缀改为-auto-timecode_v1.txt
-#
-#
-#   2016.6.26
-#   1.2.1 by Mikey
-#       完善文案。
-#       错误信息定义为全局变量，从而允许支持多国语言
-#
-#
-#   2016.6.25
-#   1.2 by Mikey
-#       tcInit 增加对于AssumeFPS预设的字符串形式的fps的支持，即：
-#
-#       preset              numerator denominator approximate FPS
-#       "ntsc_film"         24000       1001    23.976
-#       "ntsc_video"        30000       1001    29.970
-#       "ntsc_double"       60000       1001    59.940
-#       "ntsc_quad"         120000      1001    119.880
-#       "ntsc_round_film"   2997        125     23.976
-#       "ntsc_round_video"  2997        100     29.97
-#       "ntsc_round_double" 2997        50      59.94
-#       "ntsc_round_quad"   2997        25      119.88
-#       "film"              24          1       24.0
-#       "pal_film"          25          1       25.0
-#       "pal_video"         25          1       25.0
-#       "pal_double"        50          1       50.0
-#       "pal_quad"          100         1       100.0
-#
-#       示例：tcInit("ntsc_film")
-#
-#
-#   2016.6.24
-#   1.1 by Mikey
-#       增加分段帧数之和的统计：tc_frame_counter
-#       增加错误提示：调用tcAppend、tcWrite之前必须先调用tcInit。
-#       增加错误提示：调用tcWrite时，必须保证影片的总帧数与各个分段的帧数之和一致。
-#
-#
-#   2016.6.23
-#   1.0 by Mikey
-#       tcInit、tcAppend、tcWrite基本功能实现。
-#       编写文案。
+#   Avisynth 2.6 或更高版本
 #
 
 
@@ -179,6 +127,7 @@
 #   5烂2:
 #       一种交错方式。将24帧每秒的电影进行TELECINE(3:2 pulldown)处理，转换为29.970的电视信号，
 #       得到的影片每5帧中有2帧是交错的图像，所以称这种交错的方式为5烂2。
+#
 
 
 
@@ -224,6 +173,7 @@
 #   目前由于VFR视频的局限性，短期可能不会在大多数字幕组中使用，
 #   但作为一个敢于探索(zuo si)的压制人员，还是愿意来给大家分享一下制作VFR视频的知识。
 #
+
 
 
 # --- 一种制作VFR视频的思路 ---
@@ -319,7 +269,7 @@
 
 
 
-# --- 避免人工编写timecode文件 ---
+# --- 使用VFR-AutoTimecode避免人工编写timecode文件 ---
 #
 #   在上面的步骤6，如果你自己人工编写timecode文件，可以体会到：
 #       ① 需要人为去做琐碎的推导计算工作，工作效率低，而工作量多的话容易出错。
@@ -382,14 +332,60 @@
 
 
 
-global tc_is_inited = false
-#~ global tc_offset = -1
-#~ global tc_default_fps = 0
-#~ global tc_frame_counter = 0
-#~ global tc_appender = "#not yet ready..."
-#~ global tc_auto_assume_fps = true
+# --- CHANGELOG ---
+#
+#   2016.7.16
+#   1.4.1 by Mikey
+#       文案整理
+#       私用全局变量添加__前缀
+#
+#   2016.7.8
+#   1.4 by Mikey
+#       tcInit增加auto_assume_fps参数
+#       函数改名，将添加分段的函数改为tcAppend
+#
+#
+#   2016.6.27
+#   1.3 by Mikey
+#       函数改名，统一改为驼峰命名方式：tcInit，tcAppend，tcWrite
+#       生成的文件名后缀改为-auto-timecode_v1.txt
+#
+#
+#   2016.6.26
+#   1.2.1 by Mikey
+#       完善文案。
+#       错误信息定义为全局变量，从而允许支持多国语言
+#
+#
+#   2016.6.25
+#   1.2 by Mikey
+#       tcInit 增加对于AssumeFPS预设的字符串形式的fps的支持。示例：tcInit("ntsc_film")
+#
+#
+#   2016.6.24
+#   1.1 by Mikey
+#       增加分段帧数之和的统计：__tc_frame_counter
+#       增加错误提示：调用tcAppend、tcWrite之前必须先调用tcInit。
+#       增加错误提示：调用tcWrite时，必须保证影片的总帧数与各个分段的帧数之和一致。
+#
+#
+#   2016.6.23
+#   1.0 by Mikey
+#       tcInit、tcAppend、tcWrite基本功能实现。
+#       编写文案。
+#
 
-global tc_ENTER = """
+
+
+
+global __tc_is_inited = false
+#~ global __tc_offset = -1
+#~ global __tc_default_fps = 0
+#~ global __tc_frame_counter = 0
+#~ global __tc_appender = "#not yet ready..."
+#~ global __tc_auto_assume_fps = true
+
+global __tc_ENTER = """
 """
 
 global tc_MSG_CALL_INIT_BEFORE_APPEND = "在调用tcAppend()之前，请先调用tcInit()"
@@ -397,53 +393,53 @@ global tc_MSG_CALL_INIT_BEFORE_WRITE = "在调用tcWrite()之前，请先调用tcInit()"
 global tc_MSG_FRAME_COUNT_NOT_CONSISTENT = "分段帧数之和与影片总帧数不一致。请检查确保组成影片的每个分段都调用了一次tcAppend()"
 
 
-function tc_get_float_fps(val fps) {
+function __tc_get_float_fps(val fps) {
     return Colorbars(512,384).AssumeFPS(fps).FrameRate()
 }
 
 function tcInit(clip src, val "default_fps", bool "auto_assume_fps") {
 
-    global tc_is_inited = true
-    global tc_offset = -1
-    global tc_default_fps = Default(default_fps, src.FrameRate())
-    global tc_frame_counter = 0
-    global tc_auto_assume_fps = Default(auto_assume_fps, true)
+    global __tc_is_inited = true
+    global __tc_offset = -1
+    global __tc_default_fps = Default(default_fps, src.FrameRate())
+    global __tc_frame_counter = 0
+    global __tc_auto_assume_fps = Default(auto_assume_fps, true)
 
     format_line = "# timecode format v1"
     notice_line = "# generated by Mikey's Fansub Utilities Pack - VFR-AutoTimecode 1.4 at " + Time("%Y-%m-%d %H:%M:%S")
-    assume_line = "Assume " + string(tc_get_float_fps(tc_default_fps), "%f")
+    assume_line = "Assume " + string(__tc_get_float_fps(__tc_default_fps), "%f")
 
-    global tc_appender = format_line + tc_ENTER + notice_line + tc_ENTER + assume_line
+    global __tc_appender = format_line + __tc_ENTER + notice_line + __tc_ENTER + assume_line
 
     return src
 }
 
 function tcAppend(clip c) {
 
-    Assert(tc_is_inited, tc_MSG_CALL_INIT_BEFORE_APPEND)
+    Assert(__tc_is_inited, tc_MSG_CALL_INIT_BEFORE_APPEND)
 
-    start = tc_offset + 1
-    end = tc_offset + c.FrameCount()
+    start = __tc_offset + 1
+    end = __tc_offset + c.FrameCount()
 
-    global tc_offset = end
-    global tc_frame_counter = tc_frame_counter + c.FrameCount()
+    global __tc_offset = end
+    global __tc_frame_counter = __tc_frame_counter + c.FrameCount()
 
-    line = string(start, "%0.0f") + "," + string(end, "%0.0f") + "," + string(c.FrameRate(), "%f")
+    line = string(start) + "," + string(end) + "," + string(c.FrameRate(), "%f")
 
-    global tc_appender = tc_appender + tc_ENTER + line
+    global __tc_appender = __tc_appender + __tc_ENTER + line
 
     
-    return tc_auto_assume_fps ? c.AssumeFPS(tc_default_fps, sync_audio=false) : c
+    return __tc_auto_assume_fps ? c.AssumeFPS(__tc_default_fps, sync_audio=false) : c
 }
 
 
 function tcWrite(clip spliced, string "filename") {
 
-    Assert(tc_is_inited, tc_MSG_CALL_INIT_BEFORE_WRITE)
-    Assert(tc_frame_counter == spliced.FrameCount(), tc_MSG_FRAME_COUNT_NOT_CONSISTENT)
+    Assert(__tc_is_inited, tc_MSG_CALL_INIT_BEFORE_WRITE)
+    Assert(__tc_frame_counter == spliced.FrameCount(), tc_MSG_FRAME_COUNT_NOT_CONSISTENT)
     
     filename = Default(filename, ScriptName() + "-auto-timecode_v1.txt")
-    WriteFileStart(spliced, filename, "tc_appender", append=false)
+    WriteFileStart(spliced, filename, "__tc_appender", append=false)
 
     return spliced
 }
