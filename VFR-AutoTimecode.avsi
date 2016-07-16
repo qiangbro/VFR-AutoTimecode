@@ -76,7 +76,7 @@
 #                           "pal_double"        50          1       50.0
 #                           "pal_quad"          100         1       100.0
 #
-#               auto_assume_fps 是否在调用了tcAppend方法后自动对影片做AssumeFPS(fps=default_fps)。默认true
+#               auto_assume_fps 是否在tcAppend函数中执行AssumeFPS(default_fps)。默认true
 #
 #           返回值：
 #               原影片src
