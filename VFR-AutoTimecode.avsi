@@ -49,7 +49,8 @@
 
 # --- 接口说明 ---
 #
-#   本脚本提供3个函数：
+#   VFR-AutoTimecode主要提供3个函数，正确调用这3个函数，
+#   就可以在脚本被执行的时候（例如用播放器预览时）自动生成timecode文件。
 #
 #       tcInit(clip src, float "default_fps", bool "auto_assume_fps")
 #           收集片源的基本信息，初始化timecode信息。
@@ -98,9 +99,6 @@
 #               filename 指定输出timecode文件的文件名。默认：原avs文件名 + -auto-timecode_v1.txt
 #           返回值：
 #               原影片spliced
-#
-#
-#   正确调用以上三个函数，就可以在脚本被执行的时候（例如用播放器预览时）自动生成timecode文件。
 #
 
 
@@ -203,8 +201,7 @@
 #   2. 使用Trim剪档、根据影片的交错方式拆分片段。
 #       确保每个Trim区间的交错方式是单一的，否则请拆分。
 #
-#       示例：[Kimamani Arinomamani - vfr-test.avs]
-#           Trim(7451,7666) ++ Trim(727,1536)
+#       示例：Trim(7451,7666) ++ Trim(727,1536)
 #
 #
 #   3. 正常处理音频轨，得到成品音频轨。
@@ -213,10 +210,9 @@
 #   4. 对各个Trim区间分别反交错并用AssumeFPS设定统一的帧率。
 #       ① 根据该区间的交错方式，应用反交错滤镜。这时，产生了帧率不同的影片
 #       ② 用AssumeFPS将各个分段设定为统一的帧率
-#       ③ 与其他区间用UnalignedSplicee函数（等同于“+”）拼接起来
+#       ③ 各个区间用UnalignedSplicee函数（等同于“+”）拼接起来
 #
-#       示例：[Kimamani Arinomamani - vfr-test.avs]
-#           Trim(7451,7666).Yadif(mode=3).AssumeFPS("ntsc_video") + Trim(727,1536).AssumeFPS("ntsc_video")
+#       示例：Trim(7451,7666).Yadif(mode=3).AssumeFPS("ntsc_video") + Trim(727,1536).AssumeFPS("ntsc_video")
 #
 #
 #   5. 以恒定帧率压制视频轨。
@@ -230,7 +226,7 @@
 #           0,431,59.940060
 #           432,1241,29.970030
 #
-#       我们来读一下mkvmerge文档中对Timecode file format v1 的说明：
+#       读一下mkvmerge文档中对Timecode file format v1 的说明：
 #           This format starts with the version line.
 #           The second line declares the default number of frames per second.
 #           All following lines contain three numbers separated by commas:
@@ -268,17 +264,17 @@
 # --- 使用VFR-AutoTimecode避免人工编写timecode文件 ---
 #
 #   在上面的步骤6，如果你自己人工编写timecode文件，可以体会到：
-#       ① 需要人为去做琐碎的推导计算工作，工作效率低，而工作量多的话容易出错。
-#       ② 如果发现某一步推导的数据出了错，后面的数据都要做修正（这可麻烦了，可能又会产生新的错）。
-#       ③ 对于5烂2的反交错，原帧数乘以0.8得到反交错的帧数，可能会产生小数，我尚不明确所用的反交错滤镜会如何进行取舍。
+#       ① 琐碎、工作效率低、容易出错
+#       ② 如果某步出错，后面的数据都要做修正（可能又会产生新的问题）
+#       ③ 对于5烂2的反交错，尚不明确如何进行帧数换算时的小数取舍
 #
-#   综上几点我认为，生产环境中，压制人员人工去编写timecode文件的做法并不太实际可行。于是，本脚本产生。
+#   综上几点我认为，生产环境中，压制人员人工去编写timecode文件的做法并不太实际可行。于是本脚本产生。
 #
 #
-#   下面，介绍如何将本脚本应用到之前介绍的制作VFR视频的工作步骤中：
+#   下面，介绍如何将VFR-AutoTimecode应用到之前介绍的工作步骤中：
 #
 #   在步骤1:
-#       在avs文件中加载各种插件时，将VFR-AutoTimecode-1.3.avsi引入。
+#       在avs文件中加载各种插件时，将VFR-AutoTimecode.avsi引入。
 #       在用AudioDub合并了视频与音频之后，需要对该影片调用一下tcInit()方法，以此收集视频轨的基本信息，初始化timecode信息。
 #
 #       示例：[Kimamani Arinomamani - vfr-test.avs]
@@ -301,7 +297,7 @@
 #       调用完了tcAppend函数以后，可以将原来的AssumeFPS语句统一全都去掉，因为tcAppend会捎带着做AssumeFPS。
 #       当所有的Trim区间处理完善后，另起一行，对合并好的影片调用一次tcWrite()，以此将收集到的timecode信息一次性输出到timecode文件。
 #
-#       示例：[Kimamani Arinomamani - vfr-test.avs]
+#       示例：
 #           Trim(7451,7666).Yadif(mode=3).tcAppend() + Trim(727,1536).tcAppend()
 #           tcWrite()
 #
